@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>소도몰 주문 페이지</title>
+  <style>
+    body { font-family: 'Pretendard', sans-serif; margin: 2rem; }
+    h2 { color: #333; }
+    .product { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
+    .product input { width: 50px; margin-left: 1rem; }
+    .btn { margin-top: 2rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+    #result { margin-top: 2rem; color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>소도몰 상품 주문</h2>
+
+  <div class="product">
+    <span>허닭 닭근위볶음 (5,500원)</span>
+    수량: <input type="number" id="item1" value="0" min="0">
+  </div>
+
+  <div class="product">
+    <span>양념 쭈꾸미 (5,500원)</span>
+    수량: <input type="number" id="item2" value="0" min="0">
+  </div>
+
+  <button class="btn" onclick="submitOrder()">주문하기</button>
+
+  <div id="result"></div>
+
+  <script>
+    const userInfo = {
+      name: "이단",
+      phone: "0533"
+    };
+
+    function submitOrder() {
+      const date = new Date();
+      const formattedDate = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+
+      const items = [];
+      const item1Qty = parseInt(document.getElementById('item1').value);
+      const item2Qty = parseInt(document.getElementById('item2').value);
+
+      if (item1Qty > 0) items.push({ product: "허닭 닭근위볶음", qty: item1Qty, price: 5500 });
+      if (item2Qty > 0) items.push({ product: "양념 쭈꾸미", qty: item2Qty, price: 5500 });
+
+      if (items.length === 0) {
+        document.getElementById('result').innerText = '상품을 선택해주세요.';
+        return;
+      }
+
+      const payload = {
+        type: "order",
+        date: formattedDate,
+        name: userInfo.name,
+        phone: userInfo.phone,
+        items: items
+      };
+
+      fetch("https://script.google.com/macros/s/AKfycb_YOUR_SCRIPT_ID/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.text())
+      .then(result => {
+        document.getElementById('result').innerText = '✅ 주문이 완료되었습니다!';
+      })
+      .catch(error => {
+        console.error(error);
+        document.getElementById('result').innerText = '⚠️ 주문 실패! 다시 시도해주세요.';
+      });
+    }
+  </script>
+</body>
+</html>
