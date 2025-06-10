@@ -1,79 +1,1575 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>소도몰 주문 페이지</title>
-  <style>
-    body { font-family: 'Pretendard', sans-serif; margin: 2rem; }
-    h2 { color: #333; }
-    .product { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
-    .product input { width: 50px; margin-left: 1rem; }
-    .btn { margin-top: 2rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
-    #result { margin-top: 2rem; color: green; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소도몰</title>
+    <!-- Font Awesome 아이콘 라이브러리 추가 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+        header { 
+            background: #007bff; 
+            color: white; 
+            padding: 1rem; 
+            text-align: center; 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            position: relative; /* For welcome message positioning */
+        }
+        .welcome-message {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            font-size: 0.9rem;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .nav { display: flex; justify-content: space-around; background-color: #000; color: white; }
+        .nav button { flex: 1; padding: 1rem; background: none; border: none; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .nav button:hover, .nav button.active { background-color: #333; }
+        
+        /* 섹션 전환 애니메이션 */
+        .section {
+            display: none;
+            padding: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        h3 { text-align: center; color: #007bff; }
+        .product-list, .cart-list, .order-list, .admin-product-list { display: flex; flex-direction: column; gap: 1rem; max-width: 600px; margin: 0 auto 3rem; }
+        
+        /* Scroll Animation */
+        .product, .cart-item, .order-item, .admin-product-item { 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); 
+            padding: 1rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem;
+            /* Initial state for scroll animation */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .product.fade-in, .cart-item.fade-in, .order-item.fade-in, .admin-product-item.fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .product:hover, .order-item:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); cursor: pointer; transition: all 0.2s ease-in-out; }
+
+        .product-image { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; }
+        .product-details, .cart-details, .order-details, .admin-product-details { flex-grow: 1; }
+        .product-title, .cart-title, .order-title, .admin-product-title { font-size: 1.2rem; font-weight: bold; color: #000; margin-bottom: 0.25rem; }
+        .product-info, .cart-info, .order-info, .admin-product-info { font-size: 0.9rem; color: #333; line-height: 1.4; }
+        .product-price, .cart-price, .order-price, .admin-product-price { font-size: 1rem; font-weight: bold; color: #007bff; margin-top: 0.5rem; }
+        .cart-controls { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .quantity-controls { display: flex; align-items: center; gap: 5px;}
+        .quantity-input { width: 40px; padding: 5px; font-size: 1rem; text-align: center; border: 1px solid #ddd; border-radius: 5px;}
+        .qty-button {
+            background-color: #e9e9e9;
+            border: 1px solid #ddd;
+            color: #333;
+            padding: 5px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .qty-button:hover { background-color: #dcdcdc; }
+
+        .add-to-cart-btn, .remove-btn, .update-btn, .order-btn, .cancel-order-btn { padding: 6px 12px; font-size: 1rem; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .add-to-cart-btn:hover, .remove-btn:hover, .update-btn:hover, .order-btn:hover { background-color: #0056b3; }
+        .cancel-order-btn, .delete-product-btn { background-color: #dc3545; margin-left: 0.5rem;}
+        .cancel-order-btn:hover, .delete-product-btn:hover { background-color: #c82333; }
+        .edit-product-btn { background-color: #ffc107; color: #333; margin-left: 0.5rem; }
+        .edit-product-btn:hover { background-color: #e0a800; }
+
+        .calendar-table { width: 100%; max-width: 600px; margin: 2rem auto; border-collapse: collapse; border: 1px solid #ddd;} /* Add border to table */
+        .calendar-table th, .calendar-table td { 
+            width: 14.28%; 
+            height: 100px; 
+            vertical-align: top; 
+            padding: 5px; 
+            border: 1px solid #ddd; 
+            background-color: #fff; 
+            font-size: 0.9rem; 
+            position: relative;
+            text-align: right; /* Align date numbers to right */
+        }
+        .calendar-table th { /* Day of week header */
+            font-size: 1.2rem; /* 크게 키워줘 */
+            font-weight: bold;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 10px 5px;
+        }
+        .calendar-table td .day-number { /* Number of the day */
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .calendar-table .has-items { background-color: #e0f2f7; color: #000; font-weight: bold; }
+        .calendar-table .items { font-size: 0.7rem; margin-top: 5px; background: #007bff; color: white; padding: 2px 5px; border-radius: 3px; display: inline-block; margin-bottom: 2px; text-align: left;}
+        .calendar-table .sunday { color: red; }
+        .calendar-table .saturday { color: blue; }
+        .calendar-table .today { border: 2px solid #007bff; } /* 오늘 날짜 강조 */
+        .calendar-table .ordered-item-date { /* Style for dates with ordered items */
+            background-color: #d1e7dd; /* Light green */
+            border: 2px solid #28a745; /* Darker green border */
+        }
+
+
+        .toast { position: fixed; top: 1rem; right: 1rem; background: #007bff; color: white; padding: 10px 20px; border-radius: 5px; opacity: 0; transition: opacity 0.3s ease-in-out; z-index: 1000; }
+        .toast.show { opacity: 1; }
+        .cart-icon { position: relative; display: inline-block; margin-left: 0.5rem; }
+        .cart-count { position: absolute; top: -10px; right: -10px; background: red; color: white; font-size: 0.8rem; padding: 2px 6px; border-radius: 50%; }
+
+        /* 달력 헤더 */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto 1rem; font-size: 1.2rem; font-weight: bold; }
+        .calendar-header button { background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .calendar-header button:hover { background: #0056b3; }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1001; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            backdrop-filter: blur(5px); /* 배경 흐림 효과 */
+            -webkit-backdrop-filter: blur(5px); /* For Safari */
+        }
+        /* New class to show modal and center it */
+        .modal.is-active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%; /* Could be more or less, depending on screen size */
+            max-width: 500px;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-body p { margin-bottom: 0.5rem; }
+        .modal-body strong { color: #007bff; }
+        .modal-image { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 1rem; }
+        .modal-scrollable { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
+        .modal-product-details-content .modal-image {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain; /* Adjust to contain for better image display */
+            margin-bottom: 1.5rem;
+        }
+        .modal-product-details-content p strong {
+            display: inline-block;
+            min-width: 80px; /* Align labels */
+        }
+        .modal-product-details-content .description-text {
+            white-space: pre-wrap; /* Preserve newlines in description */
+            margin-top: 1rem;
+            line-height: 1.6;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+
+        /* 로딩 스피너 */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .order-status { text-align: center; color: #007bff; font-weight: bold; margin-top: 1rem;}
+        
+        /* 장바구니 총 금액 스타일 */
+        .cart-total {
+            text-align: right;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            padding-right: 1rem;
+            color: #007bff;
+        }
+
+        /* 상품 검색 바 (이전 코드에서 제거됨) */
+        /*
+        .search-bar {
+            max-width: 600px;
+            margin: 1rem auto;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .search-bar input {
+            flex-grow: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            padding: 5px;
+        }
+        .search-bar button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-bar button:hover {
+            background-color: #0056b3;
+        }
+        */
+
+        /* 상품 상세 모달 내 리뷰 섹션 */
+        .review-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        .review-section h4 {
+            margin-bottom: 0.5rem;
+            color: #007bff;
+        }
+        .stars {
+            color: gold;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        .review-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.9rem;
+        }
+        .submit-review-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            float: right;
+        }
+        .submit-review-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Empty State styles */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px; /* Ensure some height for visibility */
+        }
+        .empty-state i {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+        .empty-state p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Admin Page Styles */
+        .admin-form {
+            max-width: 600px;
+            margin: 1rem auto;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .admin-form label {
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+            display: block;
+        }
+        .admin-form input[type="text"],
+        .admin-form input[type="number"],
+        .admin-form input[type="date"],
+        .admin-form textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .admin-form textarea {
+            resize: vertical;
+        }
+        .admin-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        .admin-form button:hover {
+            background-color: #0056b3;
+        }
+        .admin-section-title {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #007bff;
+        }
+        .admin-product-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .admin-product-item .product-image {
+            width: 60px;
+            height: 60px;
+        }
+        .admin-product-item .admin-product-details {
+            flex-grow: 1;
+        }
+        .admin-product-item .admin-product-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .admin-product-item .admin-product-controls button {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Countdown Timer Style */
+        .countdown {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #28a745; /* Default: Green */
+            margin-top: 0.25rem;
+        }
+        .countdown.warning { /* Less than 24 hours */
+            color: #ffc107; /* Orange */
+        }
+        .countdown.critical { /* Less than 1 hour */
+            color: #dc3545; /* Red */
+        }
+        .countdown.ended {
+            color: #dc3545; /* Red for ended countdown */
+            font-style: italic;
+        }
+
+        /* Custom Confirm Modal */
+        .custom-confirm-modal .modal-content {
+            text-align: center;
+            padding: 30px;
+        }
+        .custom-confirm-modal .modal-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .custom-confirm-modal .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .custom-confirm-modal .modal-buttons button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+        .custom-confirm-modal .confirm-yes {
+            background-color: #007bff;
+            color: white;
+        }
+        .custom-confirm-modal .confirm-yes:hover {
+            background-color: #0056b3;
+        }
+        .custom-confirm-modal .confirm-no {
+            background-color: #6c757d;
+            color: white;
+        }
+        .custom-confirm-modal .confirm-no:hover {
+            background-color: #5a6268;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .nav button { padding: 0.7rem; font-size: 0.9rem; }
+            .product, .cart-item, .order-item, .admin-product-item { flex-direction: column; align-items: flex-start; }
+            .product-image { margin-bottom: 0.5rem; }
+            .cart-controls { flex-direction: column; align-items: flex-start; gap: 0.5rem; width: 100%; }
+            .quantity-input { width: 100px; /* 좀 더 여유있게 */ }
+            .add-to-cart-btn, .remove-btn, .update-btn, .order-btn, .cancel-order-btn, .edit-product-btn, .delete-product-btn { width: 100%; margin-left: 0; }
+            .quantity-controls { width: 100%; justify-content: flex-start; }
+            .calendar-table th, .calendar-table td { height: 70px; font-size: 0.75rem; padding: 3px; }
+            .calendar-table .items { font-size: 0.6rem; padding: 1px 3px; }
+            .modal-content { width: 95%; margin: 5% auto; }
+            .cart-total { font-size: 1.1rem; padding-right: 0.5rem; }
+            .modal-scrollable { max-height: 60vh; }
+            /* .search-bar styles removed */
+            .search-bar input { font-size: 0.9rem; }
+            .search-bar button { padding: 6px 12px; font-size: 0.9rem; }
+            .welcome-message {
+                position: static;
+                transform: none;
+                text-align: center;
+                padding-top: 0.5rem;
+            }
+            .admin-product-item .admin-product-controls {
+                flex-direction: column;
+                width: 100%;
+            }
+            .admin-product-item .admin-product-controls button {
+                width: 100%;
+            }
+            .custom-confirm-modal .modal-buttons {
+                flex-direction: column;
+            }
+            .custom-confirm-modal .modal-buttons button {
+                width: 100%;
+            }
+            .modal-product-details-content .modal-image {
+                max-height: 150px; /* Adjust for smaller screens */
+            }
+        }
+    </style>
 </head>
 <body>
-  <h2>소도몰 상품 주문</h2>
+    <header>
+        소도몰
+        <span id="welcomeMessage" class="welcome-message"></span>
+    </header>
+    <div class="nav">
+        <button class="active" onclick="showSection('productSection', this)"><i class="fas fa-box"></i> 오늘의 공동구매 상품안내</button>
+        <button onclick="showSection('cartSection', this)"><i class="fas fa-shopping-cart"></i> 장바구니 <span class="cart-icon"><span id="cartCount" class="cart-count">0</span></span></button>
+        <button onclick="showSection('closedGroupBuySection', this)"><i class="fas fa-archive"></i> 마감된 공구목록</button>
+        <button onclick="showSection('calendarSection', this)"><i class="fas fa-calendar-alt"></i> 입고 달력</button>
+        <button onclick="showSection('orderSection', this)"><i class="fas fa-receipt"></i> 주문 내역</button>
+        <button id="adminButton" onclick="showSection('adminSection', this)" style="display:none;"><i class="fas fa-user-shield"></i> 관리자 페이지</button>
+    </div>
 
-  <div class="product">
-    <span>허닭 닭근위볶음 (5,500원)</span>
-    수량: <input type="number" id="item1" value="0" min="0">
-  </div>
+    <!-- 오늘의 공동구매 상품안내 섹션 -->
+    <div id="productSection" class="section active">
+        <h3>오늘의 공동구매 상품안내</h3>
+        <!-- 검색 바 제거 -->
+        <div class="product-list" id="productList"></div>
+        <div id="emptyProductMessage" class="empty-state" style="display:none;">
+            <i class="fas fa-box-open"></i>
+            <p>현재 진행 중인 공동구매 상품이 없습니다.</p>
+            <p>새로운 상품을 기대해 주세요!</p>
+        </div>
+    </div>
 
-  <div class="product">
-    <span>양념 쭈꾸미 (5,500원)</span>
-    수량: <input type="number" id="item2" value="0" min="0">
-  </div>
+    <!-- 장바구니 섹션 -->
+    <div id="cartSection" class="section">
+        <h3>장바구니</h3>
+        <div class="cart-list" id="cartList"></div>
+        <div id="emptyCartMessage" class="empty-state" style="display:none;">
+            <i class="fas fa-shopping-basket"></i>
+            <p>장바구니가 비어 있습니다.</p>
+            <p>지금 상품을 담아보세요!</p>
+        </div>
+        <div id="cartTotalDisplay" class="cart-total" style="display: none;"></div>
+        <div style="text-align:center">
+            <button class="order-btn" onclick="submitOrder()">주문하기</button>
+        </div>
+    </div>
 
-  <button class="btn" onclick="submitOrder()">주문하기</button>
+    <!-- 마감된 공구목록 섹션 -->
+    <div id="closedGroupBuySection" class="section">
+        <h3>마감된 공구목록</h3>
+        <div class="product-list" id="closedProductList"></div>
+        <div id="emptyClosedProductMessage" class="empty-state" style="display:none;">
+            <i class="fas fa-archive"></i>
+            <p>마감된 공동구매 상품이 없습니다.</p>
+        </div>
+    </div>
 
-  <div id="result"></div>
+    <!-- 입고 달력 섹션 -->
+    <div id="calendarSection" class="section">
+        <h3>입고 달력</h3>
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)">이전 달</button>
+            <span id="currentMonthYear"></span>
+            <button onclick="changeMonth(1)">다음 달</button>
+        </div>
+        <table class="calendar-table" id="calendarTable"></table>
+    </div>
 
-  <script>
-    const userInfo = {
-      name: "이단",
-      phone: "0533"
-    };
+    <!-- 주문 내역 섹션 -->
+    <div id="orderSection" class="section">
+        <h3>주문 내역</h3>
+        <div class="order-list" id="orderList"></div>
+        <div id="emptyOrderMessage" class="empty-state" style="display:none;">
+            <i class="fas fa-file-invoice"></i>
+            <p>주문 내역이 없습니다.</p>
+            <p>첫 주문을 시작해 보세요!</p>
+        </div>
+    </div>
 
-    function submitOrder() {
-      const date = new Date();
-      const formattedDate = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+    <!-- 관리자 페이지 섹션 -->
+    <div id="adminSection" class="section">
+        <h3>관리자 페이지</h3>
+        <div style="max-width: 600px; margin: 1rem auto; padding: 1rem; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+            <p style="text-align: center; color: #dc3545; font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> 관리자 시뮬레이션 모드</p>
+            <p style="text-align: center; font-size: 0.9rem; color: #666;">
+                이 페이지는 백엔드 없이 `localStorage`를 사용하여 관리자 기능을 시뮬레이션합니다.<br>
+                실제 로그인 및 데이터 영구 저장을 위해서는 백엔드 개발이 필요합니다.
+            </p>
+             <div style="margin-top: 1rem; text-align: center;">
+                <label for="adminUserName" style="font-weight: bold;">관리자 이름 설정:</label>
+                <input type="text" id="adminUserName" placeholder="관리자 이름" style="width: 200px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                <button onclick="setAdminName()" style="padding: 8px 15px; margin-left: 0.5rem; background-color: #28a745;">설정</button>
+                <button onclick="toggleAdminPanel()" style="padding: 8px 15px; margin-left: 0.5rem; background-color: #6c757d;">관리자 버튼 토글</button>
+            </div>
+        </div>
+        
+        <h4 class="admin-section-title">상품 추가</h4>
+        <div class="admin-form">
+            <label for="newProductTitle">상품명:</label>
+            <input type="text" id="newProductTitle" placeholder="상품명" required>
+            
+            <label for="newProductInfo">상품 정보:</label>
+            <textarea id="newProductInfo" placeholder="상세 정보" required></textarea>
+            
+            <label for="newProductPrice">가격:</label>
+            <input type="number" id="newProductPrice" placeholder="가격" min="0" required>
+            
+            <label for="newProductImageUrl">이미지 URL:</label>
+            <input type="text" id="newProductImageUrl" placeholder="예: https://placehold.co/80x80/..." required>
+            
+            <label for="newProductIncomingDate">입고일:</label>
+            <input type="date" id="newProductIncomingDate" required>
 
-      const items = [];
-      const item1Qty = parseInt(document.getElementById('item1').value);
-      const item2Qty = parseInt(document.getElementById('item2').value);
+            <label for="newProductUploadedDate">업로드 날짜 (공구 마감일 계산 기준):</label>
+            <input type="date" id="newProductUploadedDate" required>
+            
+            <button onclick="addNewProduct()">상품 추가</button>
+        </div>
 
-      if (item1Qty > 0) items.push({ product: "허닭 닭근위볶음", qty: item1Qty, price: 5500 });
-      if (item2Qty > 0) items.push({ product: "양념 쭈꾸미", qty: item2Qty, price: 5500 });
+        <h4 class="admin-section-title">등록된 상품 관리</h4>
+        <div class="admin-product-list" id="adminProductList">
+            <!-- 관리자 상품 목록이 여기에 렌더링됩니다 -->
+        </div>
+        <div id="emptyAdminProductMessage" class="empty-state" style="display:none;">
+            <i class="fas fa-box-open"></i>
+            <p>등록된 상품이 없습니다.</p>
+            <p>새로운 상품을 추가해 보세요!</p>
+        </div>
+    </div>
 
-      if (items.length === 0) {
-        document.getElementById('result').innerText = '상품을 선택해주세요.';
-        return;
-      }
+    <div id="toast" class="toast"></div>
 
-      const payload = {
-        type: "order",
-        date: formattedDate,
-        name: userInfo.name,
-        phone: userInfo.phone,
-        items: items
-      };
+    <!-- 주문 상세 모달 -->
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('orderDetailsModal')">&times;</span>
+            <h3>주문 상세 정보</h3>
+            <div class="modal-body modal-scrollable" id="modalOrderDetails">
+                <!-- 주문 상세 정보가 여기에 로드됩니다. -->
+            </div>
+        </div>
+    </div>
 
-      fetch("https://script.google.com/macros/s/AKfycb_YOUR_SCRIPT_ID/exec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      .then(response => response.text())
-      .then(result => {
-        document.getElementById('result').innerText = '✅ 주문이 완료되었습니다!';
-      })
-      .catch(error => {
-        console.error(error);
-        document.getElementById('result').innerText = '⚠️ 주문 실패! 다시 시도해주세요.';
-      });
-    }
-  </script>
+    <!-- 상품 상세 모달 -->
+    <div id="productDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('productDetailsModal')">&times;</span>
+            <h3>상품 상세 정보</h3>
+            <div class="modal-body modal-scrollable" id="modalProductDetails">
+                <!-- 상품 상세 정보가 여기에 로드됩니다. -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 커스텀 확인 모달 -->
+    <div id="customConfirmModal" class="modal custom-confirm-modal">
+        <div class="modal-content">
+            <div class="modal-message" id="customConfirmMessage"></div>
+            <div class="modal-buttons">
+                <button class="confirm-yes" id="customConfirmYes">확인</button>
+                <button class="confirm-no" id="customConfirmNo">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 초기 샘플 상품 데이터 (uploadedDate 추가)
+        const initialSampleProducts = [
+            { id: 1, title: "매콤 갑오징어 밥바", info: "국내산 갑오징어 사용, 매콤한 간편식, 250g\n\n- 간편하고 맛있는 한 끼 식사\n- 전자레인지 3분이면 완성!", incomingDate: "2025-06-10", uploadedDate: "2025-06-09", price: 6500, imageUrl: "https://placehold.co/80x80/FF6347/FFFFFF?text=밥바" },
+            { id: 2, title: "쿵딘 쌀국수", info: "쌀 함량 83% 베트남 현지 맛, 300g\n\n- 얼큰하고 시원한 국물\n- 숙주와 고수를 곁들이면 더욱 맛있어요!", incomingDate: "2025-06-11", uploadedDate: "2025-06-09", price: 4900, imageUrl: "https://placehold.co/80x80/6A5ACD/FFFFFF?text=쌀국수" },
+            { id: 3, title: "허닭 닭가슴살 큐브", info: "담백하고 부드러운 닭가슴살, 100g\n\n- 운동 후 단백질 보충에 최고\n- 샐러드 토핑으로도 좋아요!", incomingDate: "2025-06-15", uploadedDate: "2025-06-14", price: 3200, imageUrl: "https://placehold.co/80x80/3CB371/FFFFFF?text=닭가슴살" },
+            { id: 4, title: "프레시업 샐러드팩", info: "신선한 채소와 드레싱, 200g\n\n- 다이어트 식단에 필수\n- 아삭한 채소와 상큼한 드레싱의 조화", incomingDate: "2025-06-10", uploadedDate: "2025-06-08", price: 7800, imageUrl: "https://placehold.co/80x80/FFD700/000000?text=샐러드" }, // Uploaded on Sunday
+            { id: 5, title: "오트밀 통곡물 시리얼", info: "든든한 아침식사 대용, 500g\n\n- 우유나 요거트와 함께 즐기세요\n- 식이섬유가 풍부하여 포만감이 오래갑니다.", incomingDate: "2025-07-02", uploadedDate: "2025-07-01", price: 5500, imageUrl: "https://placehold.co/80x80/87CEEB/FFFFFF?text=시리얼" },
+            { id: 6, title: "비비고 왕교자", info: "속이 꽉 찬 왕교자, 만두의 정석, 450g\n\n- 쪄먹고, 구워먹고, 만둣국으로도 최고\n- 온 가족이 즐기는 간식 및 식사 대용", incomingDate: "2025-06-18", uploadedDate: "2025-06-16", price: 8900, imageUrl: "https://placehold.co/80x80/CD853F/FFFFFF?text=왕교자" },
+            { id: 7, title: "제주 삼다수 2L", info: "한라산의 청정함, 시원한 생수, 2L\n\n- 미네랄이 풍부한 깨끗한 물\n- 휴대하기 편리한 2L 용량", incomingDate: "2025-06-20", uploadedDate: "2025-06-19", price: 900, imageUrl: "https://placehold.co/80x80/ADD8E6/000000?text=삼다수" }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('products')) || initialSampleProducts;
+        let currentCalendarDate = new Date(); // 달력 현재 표시 월
+        let userName = localStorage.getItem('userName') || '방문자'; // 사용자 이름 로드
+        let isAdmin = localStorage.getItem('isAdmin') === 'true'; // 관리자 모드 여부
+        let countdownIntervals = {}; // 각 상품의 카운트다운 타이머 ID를 저장할 객체
+
+        // Intersection Observer for scroll animation
+        const fadeInObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                    observer.unobserve(entry.target); // Once visible, stop observing
+                }
+            });
+        }, { threshold: 0.1 }); // Trigger when 10% of the element is visible
+
+        // 웰컴 메시지 업데이트 함수
+        function updateWelcomeMessage() {
+            document.getElementById('welcomeMessage').textContent = `안녕하세요! ${userName}님!`;
+        }
+
+        // 관리자 이름 설정
+        function setAdminName() {
+            const inputName = document.getElementById('adminUserName').value.trim();
+            if (inputName) {
+                userName = inputName;
+                localStorage.setItem('userName', userName);
+                updateWelcomeMessage();
+                showToast(`이름이 '${userName}'으로 설정되었습니다.`);
+            } else {
+                showToast("이름을 입력해주세요.");
+            }
+        }
+        
+        // 관리자 버튼 가시성 토글
+        function toggleAdminPanel() {
+            isAdmin = !isAdmin; // 상태 반전
+            localStorage.setItem('isAdmin', isAdmin); // localStorage에 저장
+            const adminButton = document.getElementById('adminButton');
+            if (isAdmin) {
+                adminButton.style.display = 'flex'; // 보이게 함
+                showToast("관리자 버튼이 활성화되었습니다.");
+            } else {
+                adminButton.style.display = 'none'; // 숨김
+                showToast("관리자 버튼이 비활성화되었습니다.");
+            }
+        }
+
+
+        // 마감일 계산 함수
+        function calculateDeadline(uploadedDateStr) {
+            const uploadDate = new Date(uploadedDateStr);
+            let deadline = new Date(uploadDate);
+            deadline.setHours(13, 0, 0, 0); // 1 PM deadline
+
+            const dayOfWeek = uploadDate.getDay(); // 0: Sunday, 6: Saturday
+
+            if (dayOfWeek === 6) { // Saturday
+                deadline.setDate(uploadDate.getDate() + 2); // Monday
+            } else if (dayOfWeek === 0) { // Sunday
+                deadline.setDate(uploadDate.getDate() + 1); // Monday
+            } else { // Weekday
+                deadline.setDate(uploadDate.getDate() + 1); // Next day
+            }
+            return deadline;
+        }
+
+        // 활성 공동구매 상품 필터링
+        function getActiveProducts() {
+            const now = new Date();
+            return products.filter(product => {
+                const deadline = calculateDeadline(product.uploadedDate);
+                return now < deadline;
+            });
+        }
+
+        // 마감된 공동구매 상품 필터링
+        function getClosedProducts() {
+            const now = new Date();
+            return products.filter(product => {
+                const deadline = calculateDeadline(product.uploadedDate);
+                return now >= deadline;
+            });
+        }
+
+        // 카운트다운 타이머 업데이트 함수
+        function updateCountdownDisplay(productId, deadlineDate) {
+            const now = new Date().getTime();
+            const distance = deadlineDate.getTime() - now;
+            const countdownElement = document.getElementById(`countdown-${productId}`);
+
+            if (!countdownElement) return; // 요소가 없으면 종료
+
+            countdownElement.classList.remove('warning', 'critical', 'ended'); // 기존 클래스 제거
+
+            if (distance < 0) {
+                countdownElement.textContent = "마감됨";
+                countdownElement.classList.add('ended');
+                // 마감된 상품은 리스트에서 제거하고 재렌더링
+                if (countdownIntervals[productId]) {
+                    clearInterval(countdownIntervals[productId]);
+                    delete countdownIntervals[productId];
+                    loadActiveProducts(); // 활성 목록 업데이트
+                    loadClosedProducts(); // 마감 목록 업데이트
+                }
+                return;
+            }
+
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownElement.textContent = `마감까지: ${hours}시간 ${minutes}분 ${seconds}초`;
+
+            // 색상 변경 로직
+            if (distance < 1000 * 60 * 60) { // 1시간 이내
+                countdownElement.classList.add('critical');
+            } else if (distance < 1000 * 60 * 60 * 24) { // 24시간 이내
+                countdownElement.classList.add('warning');
+            }
+            // else: 기본 색상 (CSS에서 설정)
+        }
+
+        // 모든 활성 상품에 대한 카운트다운 타이머 시작/업데이트
+        function startAllCountdowns() {
+            // 기존 타이머 모두 제거
+            for (const key in countdownIntervals) {
+                clearInterval(countdownIntervals[key]);
+                delete countdownIntervals[key];
+            }
+
+            const activeProducts = getActiveProducts();
+            activeProducts.forEach(product => {
+                const deadline = calculateDeadline(product.uploadedDate);
+                // 즉시 업데이트 한 번 실행
+                updateCountdownDisplay(product.id, deadline);
+                // 1초마다 업데이트
+                countdownIntervals[product.id] = setInterval(() => {
+                    updateCountdownDisplay(product.id, deadline);
+                }, 1000);
+            });
+        }
+
+
+        // 오늘의 공동구매 상품안내 섹션 로드 및 렌더링
+        function loadActiveProducts() { 
+            const list = document.getElementById("productList");
+            const emptyProductMessage = document.getElementById("emptyProductMessage");
+            list.innerHTML = ""; // 기존 목록 초기화
+
+            const activeProducts = getActiveProducts();
+
+            if (activeProducts.length === 0) { 
+                emptyProductMessage.style.display = "flex";
+                emptyProductMessage.querySelector('p').textContent = "현재 진행 중인 공동구매 상품이 없습니다.";
+                emptyProductMessage.querySelector('p:nth-child(3)').style.display = "block"; 
+                emptyProductMessage.querySelector('p:nth-child(3)').textContent = "새로운 상품을 기대해 주세요!";
+            } else {
+                emptyProductMessage.style.display = "none";
+            }
+
+            activeProducts.forEach(product => {
+                const div = document.createElement("div");
+                div.className = "product";
+                div.onclick = () => showProductDetails(product.id);
+                const deadline = calculateDeadline(product.uploadedDate);
+                const deadlineText = deadline.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                div.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.title}" class="product-image">
+                    <div class="product-details">
+                        <div class="product-title">${product.title}</div>
+                        <div class="product-info">${product.info.split('\n')[0]}</div> <!-- 첫 줄만 표시 -->
+                        <div class="product-price">${product.price.toLocaleString()}원</div>
+                        <div id="countdown-${product.id}" class="countdown"></div>
+                    </div>
+                    <div class="cart-controls" onclick="event.stopPropagation();">
+                        <div class="quantity-controls">
+                            <button class="qty-button" onclick="changeQuantity(${product.id}, -1, 'productSection')">-</button>
+                            <input type="number" id="qty-${product.id}" class="quantity-input" value="1" min="1" onchange="validateQuantity(this)">
+                            <button class="qty-button" onclick="changeQuantity(${product.id}, 1, 'productSection')">+</button>
+                        </div>
+                        <button class="add-to-cart-btn" onclick="addToCart(${product.id})">담기</button>
+                    </div>
+                `;
+                list.appendChild(div);
+                fadeInObserver.observe(div);
+            });
+            startAllCountdowns(); // 상품 로드 후 카운트다운 시작
+        }
+
+        // 마감된 공구목록 섹션 로드 및 렌더링
+        function loadClosedProducts() {
+            const list = document.getElementById("closedProductList");
+            const emptyMessage = document.getElementById("emptyClosedProductMessage");
+            list.innerHTML = "";
+
+            const closedProducts = getClosedProducts();
+
+            if (closedProducts.length === 0) {
+                emptyMessage.style.display = "flex";
+            } else {
+                emptyMessage.style.display = "none";
+            }
+
+            closedProducts.forEach(product => {
+                const div = document.createElement("div");
+                div.className = "product"; 
+                div.onclick = () => showProductDetails(product.id); 
+                const deadline = calculateDeadline(product.uploadedDate);
+                const deadlineText = deadline.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                div.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.title}" class="product-image">
+                    <div class="product-details">
+                        <div class="product-title">${product.title} <span style="color:red; font-size:0.8em;">(마감)</span></div>
+                        <div class="product-info">${product.info.split('\n')[0]}</div> <!-- 첫 줄만 표시 -->
+                        <div class="product-price">${product.price.toLocaleString()}원</div>
+                    </div>
+                `;
+                list.appendChild(div);
+                fadeInObserver.observe(div);
+            });
+        }
+
+        // 수량 입력 유효성 검사 (1 미만 방지)
+        function validateQuantity(input) {
+            if (parseInt(input.value) < 1 || isNaN(parseInt(input.value))) {
+                input.value = 1;
+                showToast("수량은 1개 이상이어야 합니다.");
+            }
+        }
+
+        // 수량 변경 버튼 기능 (상품 섹션, 장바구니 섹션, 모달 내부 모두 사용)
+        function changeQuantity(productId, delta, sectionId) {
+            let qtyInput;
+            if (sectionId === 'productSection') {
+                qtyInput = document.getElementById(`qty-${productId}`);
+            } else if (sectionId === 'cartSection') {
+                qtyInput = document.getElementById(`cart-qty-${productId}`);
+            } else if (sectionId === 'modal') { // For product details modal
+                qtyInput = document.getElementById(`modal-qty-${productId}`);
+            }
+            
+            if (!qtyInput) return;
+
+            let currentQty = parseInt(qtyInput.value);
+            if (isNaN(currentQty)) currentQty = 1;
+
+            let newQty = currentQty + delta;
+            if (newQty < 1) newQty = 1;
+
+            qtyInput.value = newQty;
+
+            // 장바구니 페이지에서 수량 변경 시 즉시 업데이트 반영
+            if (sectionId === 'cartSection' || document.getElementById('cartSection').classList.contains('active')) {
+                updateItem(productId, newQty, false); 
+            }
+        }
+
+        // 장바구니에 상품을 추가하는 함수
+        function addToCart(productId) {
+            const qtyInput = document.getElementById(`qty-${productId}`);
+            const qty = parseInt(qtyInput.value);
+
+            if (isNaN(qty) || qty < 1) {
+                showToast("올바른 수량을 입력해주세요.");
+                qtyInput.value = 1; 
+                return;
+            }
+
+            const product = products.find(p => p.id === productId);
+            let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            const existing = cart.find(item => item.id === productId);
+
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.title,
+                    price: product.price,
+                    quantity: qty,
+                    imageUrl: product.imageUrl 
+                });
+            }
+            localStorage.setItem("cart", JSON.stringify(cart));
+            showToast(`'${product.title}' ${qty}개가 장바구니에 담겼습니다.`);
+            updateCartCount();
+        }
+
+        // 장바구니 목록을 렌더링하는 함수
+        function showCart() {
+            const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            const list = document.getElementById("cartList");
+            const emptyMessage = document.getElementById("emptyCartMessage");
+            const cartTotalDisplay = document.getElementById("cartTotalDisplay");
+            list.innerHTML = ""; 
+
+            let totalCartPrice = 0;
+
+            if (cart.length === 0) {
+                emptyMessage.style.display = "flex";
+                list.style.display = "none";
+                cartTotalDisplay.style.display = "none";
+            } else {
+                emptyMessage.style.display = "none";
+                list.style.display = "flex";
+                cartTotalDisplay.style.display = "block";
+
+                cart.forEach(item => {
+                    const div = document.createElement("div");
+                    div.className = "cart-item";
+                    div.innerHTML = `
+                        <img src="${item.imageUrl}" alt="${item.name}" class="product-image">
+                        <div class="cart-details">
+                            <div class="cart-title">${item.name}</div>
+                            <div class="cart-info">개당 가격: ${item.price.toLocaleString()}원</div>
+                            <div class="cart-price">총 ${ (item.price * item.quantity).toLocaleString()}원</div>
+                        </div>
+                        <div class="cart-controls">
+                            <div class="quantity-controls">
+                                <button class="qty-button" onclick="changeQuantity(${item.id}, -1, 'cartSection')">-</button>
+                                <input type="number" id="cart-qty-${item.id}" value="${item.quantity}" min="1" class="quantity-input" onchange="updateItem(${item.id}, this.value, false)">
+                                <button class="qty-button" onclick="changeQuantity(${item.id}, 1, 'cartSection')">+</button>
+                            </div>
+                            <button class="remove-btn" onclick="removeItem(${item.id})">삭제</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                    fadeInObserver.observe(div); 
+                    totalCartPrice += (item.price * item.quantity);
+                });
+            }
+            cartTotalDisplay.textContent = `총 결제 금액: ${totalCartPrice.toLocaleString()}원`;
+        }
+
+        // 장바구니 아이템 수량 업데이트 또는 변경 (버튼/입력 필드 겸용)
+        function updateItem(id, value, isDelta) {
+            let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            let targetItem = cart.find(item => item.id === id);
+
+            if (!targetItem) return;
+
+            let newQty;
+            if (isDelta) { 
+                newQty = targetItem.quantity + value;
+            } else { 
+                newQty = parseInt(value);
+            }
+
+            if (isNaN(newQty) || newQty < 1) {
+                showToast("수량은 1개 이상이어야 합니다.");
+                showCart(); 
+                return;
+            }
+
+            targetItem.quantity = newQty;
+            localStorage.setItem("cart", JSON.stringify(cart));
+            showToast("수량이 변경되었습니다.");
+            showCart(); 
+            updateCartCount();
+        }
+
+        // 장바구니에서 아이템을 제거하는 함수
+        function removeItem(id) {
+            // showCustomConfirm 함수를 사용하여 확인 절차
+            showCustomConfirm('정말로 이 상품을 장바구니에서 삭제하시겠습니까?', () => {
+                let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+                cart = cart.filter(item => item.id !== id);
+                localStorage.setItem("cart", JSON.stringify(cart));
+                showToast("상품이 장바구니에서 삭제되었습니다.");
+                showCart(); 
+                updateCartCount();
+            });
+        }
+
+        // 주문을 제출하는 함수
+        async function submitOrder() {
+            const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            const orderBtn = document.querySelector("#cartSection .order-btn");
+
+            if (cart.length === 0) {
+                showToast("장바구니가 비어 있습니다.");
+                return;
+            }
+
+            // showCustomConfirm 함수를 사용하여 확인 절차
+            showCustomConfirm('선택하신 상품을 주문하시겠습니까?', async () => {
+                // 로딩 스피너 및 메시지 표시
+                orderBtn.innerHTML = '<span class="spinner"></span> 주문 처리 중...';
+                orderBtn.disabled = true;
+
+                // 비동기 처리 시뮬레이션
+                await new Promise(resolve => setTimeout(resolve, 2000)); 
+
+                const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+                const orderId = Date.now(); 
+                const orderTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                orders.push({
+                    id: orderId,
+                    date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                    items: cart,
+                    total: orderTotal
+                });
+                localStorage.setItem("orders", JSON.stringify(orders));
+                localStorage.removeItem("cart"); 
+
+                showToast("주문이 완료되었습니다.");
+                showCart(); 
+                updateCartCount();
+                renderCalendar(); // 주문 완료 후 달력도 업데이트
+
+                // 버튼 원래 상태로 복원
+                orderBtn.innerHTML = '주문하기';
+                orderBtn.disabled = false;
+            });
+        }
+
+        // 주문 내역을 렌더링하는 함수
+        function renderOrders() {
+            const orderList = document.getElementById("orderList");
+            const emptyMessage = document.getElementById("emptyOrderMessage");
+            orderList.innerHTML = "";
+            const orders = JSON.parse(localStorage.getItem("orders") || "[]").reverse(); 
+            
+            if (orders.length === 0) {
+                emptyMessage.style.display = "flex"; 
+                orderList.style.display = "none";
+            } else {
+                emptyMessage.style.display = "none";
+                orderList.style.display = "flex";
+                orders.forEach(order => {
+                    const div = document.createElement("div");
+                    div.className = "order-item";
+                    div.onclick = () => showOrderDetails(order.id);
+                    
+                    const itemsSummary = order.items.map(i => `${i.name} x ${i.quantity}`).join(", ");
+                    
+                    div.innerHTML = `
+                        <div class="order-details">
+                            <div class="order-title">주문일: ${order.date}</div>
+                            <div class="order-info">${itemsSummary.length > 50 ? itemsSummary.substring(0, 50) + '...' : itemsSummary}</div>
+                            <div class="order-price">총 결제 금액: ${order.total.toLocaleString()}원</div>
+                        </div>
+                        <button class="cancel-order-btn" onclick="event.stopPropagation(); cancelOrder(${order.id});">주문 취소</button>
+                    `;
+                    orderList.appendChild(div);
+                    fadeInObserver.observe(div); 
+                });
+            }
+        }
+
+        // 주문 상세 모달을 보여주는 함수
+        function showOrderDetails(orderId) {
+            const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+            const order = orders.find(o => o.id === orderId);
+            const modalBody = document.getElementById("modalOrderDetails");
+            const modal = document.getElementById("orderDetailsModal"); 
+
+            if (order) {
+                let itemsHtml = order.items.map(item => `
+                    <p style="display:flex; align-items:center; gap:10px;">
+                        <img src="${item.imageUrl}" alt="${item.name}" class="product-image" style="width:50px; height:50px;">
+                        ${item.name} <br> (개당 가격: ${item.price.toLocaleString()}원) x ${item.quantity} = <strong>${(item.price * item.quantity).toLocaleString()}원</strong>
+                    </p>
+                `).join('');
+
+                modalBody.innerHTML = `
+                    <p><strong>주문일:</strong> ${order.date}</p>
+                    <p><strong>총 결제 금액:</strong> ${order.total.toLocaleString()}원</p>
+                    <hr>
+                    <h4>주문 상품:</h4>
+                    ${itemsHtml}
+                `;
+                modal.classList.add('is-active'); 
+            }
+        }
+
+        // 상품 상세 모달을 보여주는 함수 (사진과 설명글 강화)
+        function showProductDetails(productId) {
+            const product = products.find(p => p.id === productId);
+            const modalBody = document.getElementById("modalProductDetails");
+            const modal = document.getElementById("productDetailsModal"); 
+
+            if (product) {
+                modalBody.innerHTML = `
+                    <div class="modal-product-details-content">
+                        <img src="${product.imageUrl}" alt="${product.title}" class="modal-image">
+                        <p><strong>상품명:</strong> ${product.title}</p>
+                        <p><strong>가격:</strong> ${product.price.toLocaleString()}원</p>
+                        <p><strong>입고일:</strong> ${product.incomingDate}</p>
+                        <p><strong>공구 마감일:</strong> ${calculateDeadline(product.uploadedDate).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                        <div class="description-text">${product.info}</div>
+                    </div>
+                    
+                    <!-- 리뷰/평점 UI 플레이스홀더 -->
+                    <div class="review-section">
+                        <h4>상품 리뷰</h4>
+                        <div class="stars">⭐️⭐️⭐️⭐️⭐️</div>
+                        <textarea class="review-textarea" placeholder="이 상품에 대한 리뷰를 남겨주세요."></textarea>
+                        <button class="submit-review-btn" onclick="showToast('리뷰가 제출되었습니다! (실제 저장되지 않습니다.)')">리뷰 제출</button>
+                        <div style="clear:both;"></div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <div class="quantity-controls" style="justify-content: center;">
+                            <button class="qty-button" onclick="changeQuantity(${product.id}, -1, 'modal')">-</button>
+                            <input type="number" id="modal-qty-${product.id}" class="quantity-input" value="1" min="1" onchange="validateQuantity(this)">
+                            <button class="qty-button" onclick="changeQuantity(${product.id}, 1, 'modal')">+</button>
+                        </div>
+                        <button class="add-to-cart-btn" style="margin-top: 1rem;" onclick="addToCartFromModal(${product.id})">장바구니 담기</button>
+                    </div>
+                `;
+                modal.classList.add('is-active');
+            }
+        }
+
+        // 모달 내 상품 수량 변경
+        function changeQuantityForModal(productId, delta) {
+            const qtyInput = document.getElementById(`modal-qty-${productId}`);
+            let currentQty = parseInt(qtyInput.value);
+            if (isNaN(currentQty)) currentQty = 1;
+
+            let newQty = currentQty + delta;
+            if (newQty < 1) newQty = 1;
+
+            qtyInput.value = newQty;
+        }
+
+        // 모달에서 장바구니 담기
+        function addToCartFromModal(productId) {
+            const qtyInput = document.getElementById(`modal-qty-${productId}`);
+            const qty = parseInt(qtyInput.value);
+
+            if (isNaN(qty) || qty < 1) {
+                showToast("올바른 수량을 입력해주세요.");
+                qtyInput.value = 1;
+                return;
+            }
+
+            const product = products.find(p => p.id === productId);
+            let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            const existing = cart.find(item => item.id === productId);
+
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.title,
+                    price: product.price,
+                    quantity: qty,
+                    imageUrl: product.imageUrl
+                });
+            }
+            localStorage.setItem("cart", JSON.stringify(cart));
+            showToast(`'${product.title}' ${qty}개가 장바구니에 담겼습니다.`);
+            updateCartCount();
+            closeModal('productDetailsModal'); // 장바구니 담은 후 모달 닫기
+        }
+
+        // 모달을 닫는 함수 (모달 ID를 인자로 받음)
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('is-active'); 
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const orderModal = document.getElementById("orderDetailsModal");
+            const productModal = document.getElementById("productDetailsModal");
+            const confirmModal = document.getElementById("customConfirmModal");
+
+            if (orderModal && event.target == orderModal && orderModal.classList.contains('is-active')) {
+                closeModal('orderDetailsModal');
+            }
+            if (productModal && event.target == productModal && productModal.classList.contains('is-active')) {
+                closeModal('productDetailsModal');
+            }
+            if (confirmModal && event.target == confirmModal && confirmModal.classList.contains('is-active')) {
+                // 커스텀 확인 모달은 외부 클릭 시 취소로 간주
+                closeModal('customConfirmModal');
+            }
+        }
+
+        // 주문을 취소하는 함수
+        function cancelOrder(orderId) {
+            // showCustomConfirm 함수를 사용하여 확인 절차
+            showCustomConfirm('정말로 이 주문을 취소하시겠습니까?', () => {
+                let orders = JSON.parse(localStorage.getItem("orders") || "[]");
+                orders = orders.filter(order => order.id !== orderId);
+                localStorage.setItem("orders", JSON.stringify(orders));
+                showToast("주문이 취소되었습니다.");
+                renderOrders(); 
+                renderCalendar(); 
+            });
+        }
+
+        // 커스텀 확인 모달 표시 함수
+        function showCustomConfirm(message, onConfirmCallback, onCancelCallback) {
+            const confirmModal = document.getElementById('customConfirmModal');
+            const confirmMessage = document.getElementById('customConfirmMessage');
+            const confirmYesBtn = document.getElementById('customConfirmYes');
+            const confirmNoBtn = document.getElementById('customConfirmNo');
+
+            confirmMessage.textContent = message;
+
+            // 기존 이벤트 리스너 제거 (중복 방지)
+            confirmYesBtn.onclick = null;
+            confirmNoBtn.onclick = null;
+
+            confirmYesBtn.onclick = () => {
+                closeModal('customConfirmModal');
+                if (onConfirmCallback) onConfirmCallback();
+            };
+
+            confirmNoBtn.onclick = () => {
+                closeModal('customConfirmModal');
+                if (onCancelCallback) onCancelCallback();
+            };
+
+            confirmModal.classList.add('is-active');
+        }
+
+
+        // 달력을 렌더링하는 함수 (주문한 상품만 표시되도록 수정)
+        function renderCalendar() {
+            const table = document.getElementById("calendarTable");
+            const currentMonthYearSpan = document.getElementById("currentMonthYear");
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth(); 
+
+            currentMonthYearSpan.textContent = `${year}년 ${month + 1}월`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay(); 
+
+            table.innerHTML = `
+                <thead>
+                    <tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>
+                </thead>
+                <tbody></tbody>`;
+            const tbody = table.querySelector("tbody");
+            let html = "<tr>";
+
+            // 이전 달 빈 칸 채우기
+            for (let i = 0; i < startDay; i++) {
+                html += "<td></td>";
+            }
+
+            const today = new Date(); 
+            const todayYear = today.getFullYear();
+            const todayMonth = today.getMonth();
+            const todayDate = today.getDate();
+
+            // 주문한 상품의 입고일을 수집
+            const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+            const orderedIncomingDates = {}; // { 'YYYY-MM-DD': [productTitle1, productTitle2] }
+
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    const productInfo = products.find(p => p.id === item.id); // Use 'products' array
+                    if (productInfo && productInfo.incomingDate) {
+                        if (!orderedIncomingDates[productInfo.incomingDate]) {
+                            orderedIncomingDates[productInfo.incomingDate] = [];
+                        }
+                        // 중복된 상품명 방지
+                        if (!orderedIncomingDates[productInfo.incomingDate].includes(item.name)) {
+                            orderedIncomingDates[productInfo.incomingDate].push(item.name);
+                        }
+                    }
+                });
+            });
+
+            let day = 1;
+            for (let i = startDay; day <= lastDay.getDate(); i++) {
+                const date = new Date(year, month, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayOfWeek = date.getDay(); 
+
+                // 현재 날짜에 해당하는 주문 상품 목록 가져오기
+                const itemsForDate = orderedIncomingDates[dateStr] || [];
+                const itemsHtml = itemsForDate
+                    .map(title => `<div class='items'>${title}</div>`)
+                    .join('');
+
+                let cellClass = '';
+                if (dayOfWeek === 0) cellClass += 'sunday'; 
+                else if (dayOfWeek === 6) cellClass += 'saturday'; 
+
+                // 오늘 날짜 강조
+                if (year === todayYear && month === todayMonth && day === todayDate) {
+                    cellClass += ' today';
+                }
+
+                // 주문 상품이 있는 날짜 강조
+                if (itemsForDate.length > 0) {
+                    cellClass += ' ordered-item-date'; 
+                }
+
+                html += `<td class='${cellClass.trim()}'>
+                            <span class="day-number">${day}</span>
+                            ${itemsHtml}
+                         </td>`;
+
+                if (i % 7 === 6) { 
+                    html += "</tr><tr>";
+                }
+                day++;
+            }
+
+            // 다음 달 빈 칸 채우기
+            while ((day - 1 + startDay) % 7 !== 0) {
+                html += "<td></td>";
+                day++;
+            }
+            html += "</tr>";
+
+            tbody.innerHTML = html;
+        }
+
+        // 달력 월 변경 함수
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        // --- Admin Functions ---
+        function addNewProduct() {
+            const title = document.getElementById('newProductTitle').value;
+            const info = document.getElementById('newProductInfo').value;
+            const price = parseInt(document.getElementById('newProductPrice').value);
+            const imageUrl = document.getElementById('newProductImageUrl').value;
+            const incomingDate = document.getElementById('newProductIncomingDate').value;
+            const uploadedDate = document.getElementById('newProductUploadedDate').value;
+
+            if (!title || !info || isNaN(price) || price < 0 || !imageUrl || !incomingDate || !uploadedDate) {
+                showToast("모든 상품 정보를 올바르게 입력해주세요.");
+                return;
+            }
+
+            const newProduct = {
+                id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+                title,
+                info,
+                incomingDate,
+                uploadedDate,
+                price,
+                imageUrl
+            };
+
+            products.push(newProduct);
+            localStorage.setItem('products', JSON.stringify(products));
+            showToast("새 상품이 추가되었습니다!");
+            renderAdminPage(); // Refresh admin list
+            // Clear form fields
+            document.getElementById('newProductTitle').value = '';
+            document.getElementById('newProductInfo').value = '';
+            document.getElementById('newProductPrice').value = '';
+            document.getElementById('newProductImageUrl').value = '';
+            document.getElementById('newProductIncomingDate').value = '';
+            document.getElementById('newProductUploadedDate').value = '';
+
+            loadActiveProducts(); // Update active products
+            loadClosedProducts(); // Update closed products
+            renderCalendar(); // Update calendar
+        }
+
+        function renderAdminPage() {
+            const adminProductList = document.getElementById('adminProductList');
+            const emptyMessage = document.getElementById('emptyAdminProductMessage');
+            adminProductList.innerHTML = '';
+
+            if (products.length === 0) {
+                emptyMessage.style.display = 'flex';
+                adminProductList.style.display = 'none';
+            } else {
+                emptyMessage.style.display = 'none';
+                adminProductList.style.display = 'flex';
+                products.forEach(product => {
+                    const div = document.createElement('div');
+                    div.className = 'admin-product-item';
+                    const deadline = calculateDeadline(product.uploadedDate);
+                    const deadlineText = deadline.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                    div.innerHTML = `
+                        <img src="${product.imageUrl}" alt="${product.title}" class="product-image">
+                        <div class="admin-product-details">
+                            <div class="admin-product-title">${product.title} (ID: ${product.id})</div>
+                            <div class="admin-product-info">입고일: ${product.incomingDate} | 업로드일: ${product.uploadedDate}<br>마감일: ${deadlineText}</div>
+                            <div class="admin-product-price">${product.price.toLocaleString()}원</div>
+                        </div>
+                        <div class="admin-product-controls">
+                            <!-- <button class="edit-product-btn" onclick="editProduct(${product.id})">수정</button> -->
+                            <button class="delete-product-btn" onclick="deleteProduct(${product.id})">삭제</button>
+                        </div>
+                    `;
+                    adminProductList.appendChild(div);
+                    fadeInObserver.observe(div);
+                });
+            }
+            // Set admin name input value
+            document.getElementById('adminUserName').value = userName;
+        }
+
+        function deleteProduct(productId) {
+            // showCustomConfirm 함수를 사용하여 확인 절차
+            showCustomConfirm('정말로 이 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.', () => {
+                products = products.filter(p => p.id !== productId);
+                localStorage.setItem('products', JSON.stringify(products));
+                showToast("상품이 삭제되었습니다.");
+                renderAdminPage(); 
+                loadActiveProducts(); 
+                loadClosedProducts(); 
+                renderCalendar(); 
+            });
+        }
+        // function editProduct(productId) {
+        //     showToast("수정 기능은 현재 개발 중입니다.");
+        //     // TODO: Implement actual edit functionality
+        // }
+
+
+        // 섹션 전환 및 데이터 렌더링
+        function showSection(id, btn) {
+            // 모든 섹션 비활성화
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            // 모든 내비게이션 버튼 비활성화
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            
+            // 클릭된 버튼 활성화
+            if (btn) btn.classList.add('active');
+
+            // 대상 섹션 활성화 (애니메이션이 적용됨)
+            const targetSection = document.getElementById(id);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // 각 섹션에 맞는 데이터 로드/렌더링
+            if (id === 'productSection') {
+                loadActiveProducts(); 
+            }
+            if (id === 'cartSection') showCart();
+            if (id === 'closedGroupBuySection') loadClosedProducts(); 
+            if (id === 'calendarSection') renderCalendar();
+            if (id === 'orderSection') renderOrders();
+            if (id === 'adminSection') renderAdminPage(); 
+        }
+
+        // 토스트 메시지 표시 함수
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
+
+        // 장바구니 아이콘 카운트 업데이트 함수
+        function updateCartCount() {
+            const count = JSON.parse(localStorage.getItem("cart") || "[]").reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById("cartCount").textContent = count;
+            // 0개일 때 카운트 숨기기
+            if (count === 0) {
+                document.getElementById("cartCount").style.display = "none";
+            } else {
+                document.getElementById("cartCount").style.display = "block";
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener("DOMContentLoaded", () => {
+            updateWelcomeMessage(); // Welcome message on load
+
+            // 관리자 버튼 초기 가시성 설정
+            const adminButton = document.getElementById('adminButton');
+            if (isAdmin) {
+                adminButton.style.display = 'flex';
+            } else {
+                adminButton.style.display = 'none';
+            }
+
+            loadActiveProducts(); // Load active products initially
+            updateCartCount();
+            renderCalendar(); 
+            // 초기 섹션 설정 (상품 안내)
+            showSection('productSection', document.querySelector('.nav button.active'));
+        });
+    </script>
 </body>
 </html>
